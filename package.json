@@ -1,0 +1,16 @@
+{
+  "name": "read-ai-gemini-docs",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "googleapis": "^140.0.1",
+    "open": "^11.0.0"
+  }
+}
