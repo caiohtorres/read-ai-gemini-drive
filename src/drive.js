@@ -19,10 +19,11 @@ export async function uploadFileToDrive(filename, content) {
       parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
     };
 
-    const media = {
-      mimeType: 'text/plain',
-      body: Readable.from([content]), 
-    };
+const media = {
+  mimeType: 'text/plain',
+  body: Readable.from([content]),
+};
+
 
     const res = await drive.files.create({
       requestBody: fileMetadata,

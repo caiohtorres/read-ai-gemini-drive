@@ -7,7 +7,7 @@ export function normalizeTranscript(payload) {
   if (payload.participants?.length) {
     lines.push("Participantes:");
     payload.participants.forEach(p => {
-      lines.push(`- ${p.name}`);
+      lines.push(p.name);
     });
     lines.push("");
   }
@@ -24,35 +24,36 @@ export function normalizeTranscript(payload) {
   return lines.join("\n");
 }
 
-
-
-
-export async function handleReadAiWebhook(req, res) {
+export async function handleReadAiWebhook(payload) {
   try {
-    console.log("📥 Payload recebido do Read.ai:", JSON.stringify(req.body, null, 2));
+    console.log("📥 Payload recebido do Read.ai:", JSON.stringify(payload, null, 2));
 
-    const payload = req.body;
     const transcriptText = normalizeTranscript(payload);
+
+    if (!transcriptText || transcriptText.trim() === "") {
+      console.warn("⚠️ Transcrição vazia.");
+      return;
+    }
+
     console.log("📝 Transcript normalizado:", transcriptText);
 
     const ata = await generateMeetingSummary(transcriptText);
-    console.log("🟢 ATA gerada pelo Gemini:", ata);
+
+    if (!ata) {
+      console.warn("⚠️ Gemini não retornou conteúdo.");
+      return;
+    }
+
+    console.log("🟢 ATA gerada pelo Gemini.");
 
     const date = new Date().toISOString().split('T')[0];
     const filename = `Ata - ${date}.txt`;
 
     const fileId = await uploadFileToDrive(filename, ata);
+
     console.log("✅ Arquivo criado no Drive, ID:", fileId);
 
-    res.status(200).json({
-      success: true,
-      fileId,
-      url: `https://drive.google.com/file/d/${fileId}/view`
-    });
   } catch (error) {
-    console.error('❌ Erro no webhook:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ Erro no processamento do Read.ai:', error);
   }
 }
-
-

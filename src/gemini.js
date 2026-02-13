@@ -7,30 +7,110 @@ if (!process.env.GEMINI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function generateWithRetry(model, prompt, maxRetries = 3) {
+  let lastError;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      console.log(`🤖 Gemini tentativa ${attempt + 1}`);
+
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+
+    } catch (error) {
+      lastError = error;
+
+      const retryable =
+        error?.status === 503 ||
+        error?.status === 429 ||
+        error?.message?.includes('high demand');
+
+      if (!retryable) {
+        throw error;
+      }
+
+      const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
+      console.log(`⚠️ Gemini sobrecarregado. Nova tentativa em ${delay / 1000}s...`);
+      await sleep(delay);
+    }
+  }
+
+  throw lastError;
+}
+
 export async function generateMeetingSummary(transcript) {
   const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash-lite"
   });
 
   const prompt = `
-Você é um assistente corporativo altamente detalhado.
+Você é uma inteligência artificial especializada em secretariado executivo, atas corporativas e documentação formal de reuniões.
 
-Gere uma ATA DE REUNIÃO COMPLETA em português com estas seções:
+Sua tarefa é analisar cuidadosamente a transcrição fornecida e gerar uma ATA DE REUNIÃO COMPLETA, DETALHADA, OBJETIVA e PROFISSIONAL, em português brasileiro.
 
-A Ata será enviada posteriormente para o Docs no Drive, formate de acordo com o formato, centralizando elementos, como uma ata formal.
-No cabeçalho coloque a data da reunião, horário de início e de fim (tragos pela transcrição da reunião).
-Coloque os convidados para a reunião, se conseguir diferencie entre pessoas que participaram ativamente e pessoas que apenas ouviram.
+REGRAS OBRIGATÓRIAS (SIGA TODAS):
+- NÃO use HTML.
+- NÃO use Markdown.
+- NÃO use emojis.
+- NÃO use listas com símbolos especiais (*, -, •).
+- NÃO invente informações que não estejam explícitas na transcrição.
+- Quando uma informação não estiver disponível, escreva claramente: "Não informado na transcrição".
+- Retorne SOMENTE TEXTO PURO, organizado por seções e parágrafos.
+- Utilize linguagem corporativa clara, formal e impessoal.
+- O texto será inserido diretamente em um Google Docs.
 
-1️⃣ Resumo da reunião (resuma o que foi discutido, sendo bem detalhista nos pontos mais importantes).
-2️⃣ Decisões tomadas (liste todas as decisões concretas que foram discutidas e tomadas).
-3️⃣ Responsáveis (quem vai executar cada decisão).
-4️⃣ Próximos passos.
-5️⃣ Observações ou insights adicionais.
+ESTRUTURA OBRIGATÓRIA DA ATA:
 
-Reunião:
+ATA DE REUNIÃO
+
+Data da reunião:
+Horário de início:
+Horário de término:
+Plataforma da reunião:
+Título da reunião:
+
+PARTICIPANTES:
+Liste todos os participantes identificados na transcrição.
+Caso seja possível identificar quem participou ativamente e quem apenas ouviu, separe.
+Se não for possível, liste todos juntos.
+
+1. CONTEXTO E OBJETIVO DA REUNIÃO
+Descreva o contexto da reunião e seu objetivo principal com base no conteúdo da transcrição.
+Não faça suposições além do que foi falado.
+
+2. RESUMO DETALHADO DA REUNIÃO
+Relate, em formato narrativo e cronológico, os principais pontos discutidos.
+Explique claramente cada tema abordado, mantendo fidelidade ao que foi dito.
+Evite frases genéricas. Seja específico.
+
+3. DECISÕES TOMADAS
+Liste todas as decisões explícitas que foram tomadas durante a reunião.
+Se nenhuma decisão clara tiver sido tomada, informe isso.
+
+4. RESPONSÁVEIS E ATRIBUIÇÕES
+Associe cada decisão ou ação a um responsável, somente se isso estiver claro na transcrição.
+Se não houver definição de responsável, registre como "Responsável não definido na transcrição".
+
+5. AÇÕES, ENCAMINHAMENTOS E PRÓXIMOS PASSOS
+Liste todas as ações futuras mencionadas ou implícitas de forma clara na transcrição.
+Inclua prazos apenas se eles forem explicitamente mencionados.
+
+6. PONTOS DE ATENÇÃO, RISCOS OU DEPENDÊNCIAS
+Registre alertas, dúvidas, impedimentos, dependências ou pontos que exigem acompanhamento, se houver.
+
+7. CONCLUSÃO DA REUNIÃO
+Descreva como a reunião foi encerrada e o entendimento geral final, se isso puder ser identificado.
+
+OBSERVAÇÕES FINAIS:
+Não acrescente opiniões próprias.
+Não faça recomendações que não tenham base na transcrição.
+Mantenha o texto claro, objetivo e fiel ao conteúdo analisado.
+
+TRANSCRIÇÃO DA REUNIÃO:
 ${transcript}
 `;
 
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  return await generateWithRetry(model, prompt);
 }
