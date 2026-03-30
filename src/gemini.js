@@ -86,27 +86,33 @@ Explique claramente cada tema abordado, mantendo fidelidade ao que foi dito.
 Evite frases genéricas. Seja específico.
 
 3. DECISÕES TOMADAS
-Liste todas as decisões explícitas que foram tomadas durante a reunião.
+Registre apenas decisões estratégicas ou definições formais realizadas durante a reunião.
+Não inclua tarefas operacionais, atividades ou acompanhamentos.
 Se nenhuma decisão clara tiver sido tomada, informe isso.
 
-4. RESPONSÁVEIS E ATRIBUIÇÕES
-Associe cada decisão ou ação a um responsável, somente se isso estiver claro na transcrição.
-Se não houver definição de responsável, registre como "Responsável não definido na transcrição".
+4. PLANO DE AÇÃO (RESPONSÁVEIS, PRAZOS E PRÓXIMOS PASSOS)
+Consolide em uma única seção todas as ações, encaminhamentos e próximos passos definidos na reunião.
 
-5. AÇÕES, ENCAMINHAMENTOS E PRÓXIMOS PASSOS
-Liste todas as ações futuras mencionadas ou implícitas de forma clara na transcrição.
-Inclua prazos apenas se eles forem explicitamente mencionados.
+Para cada item, descreva de forma direta:
+- o que será feito,
+- quem é o responsável (somente se estiver explícito),
+- e o prazo (somente se informado).
 
-6. PONTOS DE ATENÇÃO, RISCOS OU DEPENDÊNCIAS
+5. PONTOS DE ATENÇÃO, RISCOS OU DEPENDÊNCIAS
 Registre alertas, dúvidas, impedimentos, dependências ou pontos que exigem acompanhamento, se houver.
 
-7. CONCLUSÃO DA REUNIÃO
+6. CONCLUSÃO DA REUNIÃO
 Descreva como a reunião foi encerrada e o entendimento geral final, se isso puder ser identificado.
 
 OBSERVAÇÕES FINAIS:
 Não acrescente opiniões próprias.
 Não faça recomendações que não tenham base na transcrição.
 Mantenha o texto claro, objetivo e fiel ao conteúdo analisado.
+Evite repetir informações já descritas na seção de decisões.
+Evite duplicidade entre itens.
+Agrupe ações relacionadas quando fizer sentido.
+Se não houver responsáveis definidos, registre como "Responsável não definido na transcrição".
+-Evite redundância entre seções. Cada seção deve conter informações únicas e não repetidas.
 
 TRANSCRIÇÃO DA REUNIÃO:
 ${transcript}

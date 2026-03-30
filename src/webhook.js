@@ -4,7 +4,6 @@ import { uploadFileToDrive } from './drive.js';
 export function normalizeTranscript(payload) {
   const lines = [];
 
-  // 📌 Metadados da reunião (AGORA VISÍVEIS AO GEMINI)
   lines.push("METADADOS DA REUNIÃO:");
   lines.push(`Título da reunião: ${payload.title || "Não informado na transcrição"}`);
   lines.push(`Data da reunião: ${payload.start_time ? payload.start_time.split('T')[0] : "Não informado na transcrição"}`);
@@ -13,7 +12,6 @@ export function normalizeTranscript(payload) {
   lines.push(`Plataforma da reunião: ${payload.platform || "Não informado na transcrição"}`);
   lines.push("");
 
-  // 👥 Participantes
   if (payload.participants?.length) {
     lines.push("PARTICIPANTES:");
     payload.participants.forEach(p => {
@@ -22,7 +20,6 @@ export function normalizeTranscript(payload) {
     lines.push("");
   }
 
-  // 🗣️ Transcrição
   if (payload.transcript?.speaker_blocks?.length) {
     lines.push("TRANSCRIÇÃO DA REUNIÃO:");
     payload.transcript.speaker_blocks.forEach(block => {
@@ -35,15 +32,70 @@ export function normalizeTranscript(payload) {
   return lines.join("\n");
 }
 
+function isTranscriptRelevant(payload) {
+  const blocks = payload.transcript?.speaker_blocks;
+
+  if (!Array.isArray(blocks) || blocks.length === 0) {
+    return false;
+  }
+
+  if (blocks.length < 2) {
+    return false;
+  }
+
+  const fullText = blocks
+    .map(b => (b.words || '').trim())
+    .join(' ')
+    .toLowerCase();
+
+  const wordCount = fullText.split(/\s+/).filter(Boolean).length;
+  if (wordCount < 30) {
+    return false;
+  }
+  const irrelevantPatterns = [
+    /^ok$/,
+    /^okay$/,
+    /^thank you$/,
+    /^thanks$/,
+    /^não sei$/,
+    /^i don't know$/,
+    /^teste$/,
+    /^alô$/,
+    /^hello$/,
+  ];
+
+  const isOnlyIrrelevant = irrelevantPatterns.some(pattern =>
+    pattern.test(fullText)
+  );
+
+  if (isOnlyIrrelevant) {
+    return false;
+  }
+
+  const speakers = new Set(
+    blocks.map(b => b.speaker?.name).filter(Boolean)
+  );
+
+  if (speakers.size < 2) {
+    return false;
+  }
+
+  return true;
+}
 
 export async function handleReadAiWebhook(payload) {
   try {
     console.log("📥 Payload recebido do Read.ai:", JSON.stringify(payload, null, 2));
 
+    if (!isTranscriptRelevant(payload)) {
+      console.warn("⚠️ Transcrição insuficiente ou irrelevante. Gemini não será acionado.");
+      return;
+    }
+
     const transcriptText = normalizeTranscript(payload);
 
     if (!transcriptText || transcriptText.trim() === "") {
-      console.warn("⚠️ Transcrição vazia.");
+      console.warn("⚠️ Transcrição vazia após normalização.");
       return;
     }
 
@@ -58,23 +110,20 @@ export async function handleReadAiWebhook(payload) {
 
     console.log("🟢 ATA gerada pelo Gemini.");
 
-        // 🏷️ Título da reunião
+ 
     const meetingTitle = payload.title
-      ? payload.title.replace(/[<>:"/\\|?*]+/g, '') // remove caracteres inválidos
+      ? payload.title.replace(/[<>:"/\\|?*]+/g, '')
       : 'Reunião sem título';
 
-    // 📅 Data e hora da reunião
     const meetingDateTime = payload.start_time
       ? new Date(payload.start_time)
           .toISOString()
           .replace('T', ' ')
-          .substring(0, 16) // yyyy-mm-dd hh:mm
+          .substring(0, 16)
           .replace(':', '-')
       : new Date().toISOString().replace('T', ' ').substring(0, 16).replace(':', '-');
 
-    // 📄 Nome final do arquivo
     const filename = `Ata - ${meetingTitle} - ${meetingDateTime}.txt`;
-
 
     const fileId = await uploadFileToDrive(filename, ata);
 
